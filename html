@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提示语生成器</title>
+    <style>
+        :root {
+            --main-bg-color: #f0f0f0;
+            --container-bg-color: #ffffff;
+            --input-bg-color: #f5f5f5;
+            --border-color: #ddd;
+            --button-bg-color: #444;
+            --button-active-color: #333;
+            --text-color: #333;
+            --border-radius: 8px;
+            --spacing: 15px;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--main-bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--text-color);
+        }
+        .container {
+            background-color: var(--container-bg-color);
+            border-radius: var(--border-radius);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: var(--spacing);
+            width: 90%;
+            max-width: 600px;
+        }
+        .input-box, .preview-box, .button {
+            background-color: var(--input-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: var(--spacing);
+            margin-bottom: var(--spacing);
+        }
+        .preview-box {
+            min-height: 100px;
+        }
+        .button {
+            display: block;
+            width: 100%;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            background-color: var(--button-bg-color);
+            position: relative;
+            overflow: hidden;
+            border: none;
+        }
+        .button:active {
+            background-color: var(--button-active-color);
+            transform: translateY(2px);
+        }
+        .button::after {
+            content: attr(data-feedback);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255,255,255,0.9);
+            color: var(--button-bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .button.feedback::after {
+            opacity: 1;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            border: none;
+            background-color: transparent;
+            resize: vertical;
+            min-height: 50px;
+            font-size: 14px;
+            color: var(--text-color);
+        }
+        .placeholder-inputs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing);
+            margin-bottom: var(--spacing);
+        }
+        .placeholder-input {
+            flex: 1 1 calc(50% - var(--spacing));
+            min-width: 150px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-box">
+            <textarea id="template" placeholder="输入框架，使用大写字母作为占位符"></textarea>
+        </div>
+        <div class="placeholder-inputs" id="placeholderInputs">
+            <!-- 动态生成的占位符输入框将在这里 -->
+        </div>
+        <button class="button" id="generate">生成</button>
+        <div class="preview-box">
+            <div id="preview"></div>
+        </div>
+        <button class="button" id="copy">复制</button>
+    </div>
+
+    <script>
+        const templateInput = document.getElementById('template');
+        const placeholderInputs = document.getElementById('placeholderInputs');
+        const generateBtn = document.getElementById('generate');
+        const previewDiv = document.getElementById('preview');
+        const copyBtn = document.getElementById('copy');
+
+        templateInput.addEventListener('input', updatePlaceholderInputs);
+        generateBtn.addEventListener('click', generatePrompt);
+        copyBtn.addEventListener('click', copyToClipboard);
+
+        function updatePlaceholderInputs() {
+            const placeholders = [...new Set(templateInput.value.match(/[A-Z]/g) || [])];
+            placeholderInputs.innerHTML = placeholders.map(placeholder => `
+                <div class="placeholder-input">
+                    <label for="input-${placeholder}">${placeholder}:</label>
+                    <input type="text" id="input-${placeholder}" placeholder="输入${placeholder}的内容">
+                </div>
+            `).join('');
+        }
+
+        function generatePrompt() {
+            let prompt = templateInput.value;
+            const inputs = placeholderInputs.querySelectorAll('input');
+            inputs.forEach(input => {
+                const placeholder = input.id.split('-')[1];
+                prompt = prompt.replaceAll(placeholder, input.value || `[${placeholder}]`);
+            });
+            previewDiv.textContent = prompt;
+            showFeedback(generateBtn, '生成成功');
+        }
+
+        function copyToClipboard() {
+            const textArea = document.createElement('textarea');
+            textArea.value = previewDiv.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showFeedback(copyBtn, '已复制到剪贴板');
+        }
+
+        function showFeedback(button, message) {
+            button.classList.add('feedback');
+            button.setAttribute('data-feedback', message);
+            setTimeout(() => {
+                button.classList.remove('feedback');
+            }, 2000);
+        }
+
+        // 初始化占位符输入框
+        updatePlaceholderInputs();
+    </script>
+</body>
+</html>
